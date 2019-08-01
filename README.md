@@ -16,6 +16,7 @@ from fft_conv import fft_conv1d, FFTConv1d
 # Create dummy data.  
 #     Data shape: (batch, channels, length)
 #     Kernel shape: (out_channels, in_channels, kernel_size)
+#     Bias shape: (out channels, )
 # For ordinary 1D convolution, simply set batch=1.
 signal = torch.randn(3, 3, 1024 * 1024)
 kernel = torch.randn(2, 3, 128)
