@@ -1,2 +1,5 @@
 __pycache__
 .idea
+.vscode
+.mypy_cache
+.ipynb_checkpoints
