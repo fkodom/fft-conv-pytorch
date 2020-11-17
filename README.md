@@ -11,7 +11,7 @@ Implementation of 1D, 2D, and 3D FFT convolutions in PyTorch.
 
 ```python
 import torch
-from fft_conv import fft_conv_nd, FFTConv1d
+from fft_conv import fft_conv, FFTConv1d
 
 # Create dummy data.  
 #     Data shape: (batch, channels, length)
@@ -23,7 +23,7 @@ kernel = torch.randn(2, 3, 128)
 bias = torch.randn(2)
 
 # Functional execution.  (Easiest for generic use cases.)
-out = fft_conv_nd(signal, kernel, bias=bias)
+out = fft_conv(signal, kernel, bias=bias)
 
 # Object-oriented execution.  (Requires some extra work, since the 
 # defined classes were designed for use in neural networks.)

@@ -24,43 +24,6 @@ def complex_matmul(a: Tensor, b: Tensor) -> Tensor:
     return c
 
 
-def fft_conv_1d(
-    signal: Tensor, kernel: Tensor, bias: Tensor = None, padding: int = 0,
-) -> Tensor:
-    """
-    Args:
-        signal: (Tensor) Input tensor to be convolved with the kernel.
-        kernel: (Tensor) Convolution kernel.
-        bias: (Optional, Tensor) Bias tensor to add to the output.
-        padding: (int) Number of zero samples to pad the input on the last dimension.
-
-    Returns:
-        (Tensor) Convolved tensor
-    """
-    # 1. Pad the input signal & kernel tensors
-    signal = f.pad(signal, [padding, padding])
-    kernel_padding = [0, signal.size(-1) - kernel.size(-1)]
-    padded_kernel = f.pad(kernel, kernel_padding)
-
-    # 2. Perform fourier convolution
-    signal_fr = rfftn(signal, dim=-1)
-    kernel_fr = rfftn(padded_kernel, dim=-1)
-
-    # 3. Multiply the transformed matrices
-    kernel_fr.imag *= -1
-    output_fr = complex_matmul(signal_fr, kernel_fr)
-
-    # 4. Compute inverse FFT, and remove extra padded values
-    output = irfftn(output_fr, dim=-1)
-    output = output[:, :, :signal.size(-1) - kernel.size(-1)]
-
-    # Optionally, add a bias term before returning.
-    if bias is not None:
-        output += bias.view(1, -1, 1)
-
-    return output
-
-
 def fft_conv(
     signal: Tensor, kernel: Tensor, bias: Tensor = None, padding: int = 0,
 ) -> Tensor:
@@ -96,7 +59,7 @@ def fft_conv(
 
     # Remove extra padded values
     crop_slices = [slice(0, output.shape[0]), slice(0, output.shape[1])] + [
-        slice(0, (signal.size(i) - kernel.size(i))) for i in range(2, signal.ndim)
+        slice(0, (signal.size(i) - kernel.size(i) + 1)) for i in range(2, signal.ndim)
     ]
     output = output[crop_slices].contiguous()
 
