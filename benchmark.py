@@ -2,10 +2,11 @@ from typing import Callable, NamedTuple
 from timeit import Timer
 
 import torch
+from torch import Tensor
 import torch.nn.functional as f
 import numpy as np
 
-from fft_conv import fft_conv, FFTConv1d
+from fft_conv import fft_conv
 
 
 class Benchmark(NamedTuple):
@@ -19,86 +20,51 @@ class Benchmark(NamedTuple):
         return f"({self.mean:.3e} \u00B1 {self.std:.3e}) s"
 
 
-def benchmark(
-    fn: Callable, *args, num_iterations: int = 10, **kwargs
-) -> Benchmark:
+def benchmark(fn: Callable, *args, num_iterations: int = 10, **kwargs) -> Benchmark:
     timer = Timer(
-        "fn(*args, **kwargs)",
-        globals={"fn": fn, "args": args, "kwargs": kwargs},
+        "fn(*args, **kwargs)", globals={"fn": fn, "args": args, "kwargs": kwargs},
     )
-    times = timer.repeat(number=1, repeat=num_iterations+1)
+    times = timer.repeat(number=1, repeat=num_iterations + 1)
     return Benchmark(np.mean(times[1:]).item(), np.std(times[1:]).item())
 
 
-print('\n--- 1D Convolution ---')
-kernel_size = 1025
-padding = kernel_size // 2
-kernel = torch.randn(2, 3, kernel_size)
-signal = torch.randn(3, 3, 4096)
-bias = torch.randn(2)
-print(f"Signal size: {signal.shape}")
-print(f"Kernel size: {kernel.shape}")
+def benchmark_conv(signal: Tensor, kernel: Tensor, bias: Tensor, padding: int = 0):
+    print(f"Signal size: {signal.shape}")
+    print(f"Kernel size: {kernel.shape}")
 
-direct_time = benchmark(f.conv1d, signal, kernel, bias=bias, padding=padding)
-fourier_time = benchmark(fft_conv, signal, kernel, bias=bias, padding=padding)
-print(f"Direct time: {direct_time}")
-print(f"Fourier time: {fourier_time}")
+    torch_conv = {1: f.conv1d, 2: f.conv2d, 3: f.conv3d}[signal.ndim - 2]
+    direct_time = benchmark(torch_conv, signal, kernel, bias=bias, padding=padding)
+    fourier_time = benchmark(fft_conv, signal, kernel, bias=bias, padding=padding)
+    print(f"Direct time: {direct_time}")
+    print(f"Fourier time: {fourier_time}")
 
-y0 = f.conv1d(signal, kernel, bias=bias, padding=padding)
-y1 = fft_conv(signal, kernel, bias=bias, padding=padding)
-abs_error = torch.abs(y0 - y1)
-print(f'Abs Error Mean: {abs_error.mean():.3E}')
-print(f'Abs Error Std Dev: {abs_error.std():.3E}')
+    y0 = torch_conv(signal, kernel, bias=bias, padding=padding)
+    y1 = fft_conv(signal, kernel, bias=bias, padding=padding)
+    abs_error = torch.abs(y0 - y1)
+    print(f"Abs Error Mean: {abs_error.mean():.3E}")
+    print(f"Abs Error Std Dev: {abs_error.std():.3E}")
 
 
-print('\n--- 2D Convolution ---')
-kernel_size = 21
-padding = kernel_size // 2
-kernel = torch.randn(2, 3, kernel_size, kernel_size)
-signal = torch.randn(3, 3, 256, 256)
-bias = torch.randn(2)
-print(f"Signal size: {signal.shape}")
-print(f"Kernel size: {kernel.shape}")
-
-direct_time = benchmark(f.conv1d, signal, kernel, bias=bias, padding=padding)
-fourier_time = benchmark(fft_conv, signal, kernel, bias=bias, padding=padding)
-print(f"Direct time: {direct_time}")
-print(f"Fourier time: {fourier_time}")
-
-y0 = f.conv1d(signal, kernel, bias=bias, padding=padding)
-y1 = fft_conv(signal, kernel, bias=bias, padding=padding)
-abs_error = torch.abs(y0 - y1)
-print(f'Abs Error Mean: {abs_error.mean():.3E}')
-print(f'Abs Error Std Dev: {abs_error.std():.3E}')
-
-
-print('\n--- 3D Convolution ---')
-kernel_size = 9
-padding = kernel_size // 2
-kernel = torch.randn(2, 3, kernel_size, kernel_size, kernel_size)
-signal = torch.randn(3, 3, 64, 64, 64)
-bias = torch.randn(2)
-print(f"Signal size: {signal.shape}")
-print(f"Kernel size: {kernel.shape}")
-
-direct_time = benchmark(f.conv1d, signal, kernel, bias=bias, padding=padding)
-fourier_time = benchmark(fft_conv, signal, kernel, bias=bias, padding=padding)
-print(f"Direct time: {direct_time}")
-print(f"Fourier time: {fourier_time}")
-
-y0 = f.conv1d(signal, kernel, bias=bias, padding=padding)
-y1 = fft_conv(signal, kernel, bias=bias, padding=padding)
-abs_error = torch.abs(y0 - y1)
-print(f'Abs Error Mean: {abs_error.mean():.3E}')
-print(f'Abs Error Std Dev: {abs_error.std():.3E}')
-
-
-# Test that autograd works!
-net = torch.nn.Sequential(
-    FFTConv1d(1, 3, 101, padding=50),
-    FFTConv1d(3, 3, 101, padding=50),
-    FFTConv1d(3, 1, 101, padding=50),
+print("\n--- 1D Convolution ---")
+benchmark_conv(
+    signal=torch.randn(3, 3, 4096),
+    kernel=torch.randn(2, 3, 1025),
+    bias=torch.randn(2),
+    padding=512,
 )
-output = net(torch.randn(1, 1, 1024))
-loss = output.sum()
-loss.backward()
+
+print("\n--- 2D Convolution ---")
+benchmark_conv(
+    signal=torch.randn(3, 3, 256, 256),
+    kernel=torch.randn(2, 3, 21, 21),
+    bias=torch.randn(2),
+    padding=10,
+)
+
+print("\n--- 3D Convolution ---")
+benchmark_conv(
+    signal=torch.randn(3, 3, 64, 64, 64),
+    kernel=torch.randn(2, 3, 9, 9, 9),
+    bias=torch.randn(2),
+    padding=4,
+)
