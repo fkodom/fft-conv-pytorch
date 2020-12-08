@@ -18,7 +18,7 @@ def complex_matmul(a: Tensor, b: Tensor) -> Tensor:
     # idiomatic PyTorch code, but it should work for all future versions (>= 1.7.0).
     real = scalar_matmul(a.real, b.real) - scalar_matmul(a.imag, b.imag)
     imag = scalar_matmul(a.imag, b.real) + scalar_matmul(a.real, b.imag)
-    c = torch.zeros(real.shape, dtype=torch.complex64)
+    c = torch.zeros(real.shape, dtype=torch.complex64, device=a.device)
     c.real, c.imag = real, imag
 
     return c
