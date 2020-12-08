@@ -28,19 +28,26 @@ def benchmark(fn: Callable, *args, num_iterations: int = 10, **kwargs) -> Benchm
     return Benchmark(np.mean(times[1:]).item(), np.std(times[1:]).item())
 
 
-def benchmark_conv(signal: Tensor, kernel: Tensor, bias: Tensor, padding: int = 0):
+def benchmark_conv(
+    signal: Tensor, kernel: Tensor, bias: Tensor, padding: int = 0, stride: int = 1
+):
     print(f"Signal size: {signal.shape}")
     print(f"Kernel size: {kernel.shape}")
 
     torch_conv = {1: f.conv1d, 2: f.conv2d, 3: f.conv3d}[signal.ndim - 2]
-    direct_time = benchmark(torch_conv, signal, kernel, bias=bias, padding=padding)
-    fourier_time = benchmark(fft_conv, signal, kernel, bias=bias, padding=padding)
+    direct_time = benchmark(
+        torch_conv, signal, kernel, bias=bias, padding=padding, stride=stride
+    )
+    fourier_time = benchmark(
+        fft_conv, signal, kernel, bias=bias, padding=padding, stride=stride
+    )
     print(f"Direct time: {direct_time}")
     print(f"Fourier time: {fourier_time}")
 
-    y0 = torch_conv(signal, kernel, bias=bias, padding=padding)
-    y1 = fft_conv(signal, kernel, bias=bias, padding=padding)
+    y0 = torch_conv(signal, kernel, bias=bias, padding=padding, stride=stride)
+    y1 = fft_conv(signal, kernel, bias=bias, padding=padding, stride=stride)
     abs_error = torch.abs(y0 - y1)
+    print(f"Output size: {y0.size()}")
     print(f"Abs Error Mean: {abs_error.mean():.3E}")
     print(f"Abs Error Std Dev: {abs_error.std():.3E}")
 

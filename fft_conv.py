@@ -25,7 +25,11 @@ def complex_matmul(a: Tensor, b: Tensor) -> Tensor:
 
 
 def fft_conv(
-    signal: Tensor, kernel: Tensor, bias: Tensor = None, padding: int = 0,
+    signal: Tensor,
+    kernel: Tensor,
+    bias: Tensor = None,
+    padding: int = 0,
+    stride: int = 1,
 ) -> Tensor:
     """Performs N-d convolution of Tensors using a fast fourier transform, which
     is very fast for large kernel sizes. Also, optionally adds a bias Tensor after
@@ -36,6 +40,7 @@ def fft_conv(
         kernel: (Tensor) Convolution kernel.
         bias: (Optional, Tensor) Bias tensor to add to the output.
         padding: (int) Number of zero samples to pad the input on the last dimension.
+        stride: (int) Stride size for computing output values.
 
     Returns:
         (Tensor) Convolved tensor
@@ -44,7 +49,8 @@ def fft_conv(
     signal_padding = (signal.ndim - 2) * [padding, padding]
     signal = f.pad(signal, signal_padding)
     kernel_padding = [
-        pad for i in reversed(range(2, signal.ndim))
+        pad
+        for i in reversed(range(2, signal.ndim))
         for pad in [0, signal.size(i) - kernel.size(i)]
     ]
     padded_kernel = f.pad(kernel, kernel_padding)
@@ -58,8 +64,9 @@ def fft_conv(
     output = irfftn(output_fr, dim=tuple(range(2, signal.ndim)))
 
     # Remove extra padded values
-    crop_slices = [slice(0, output.shape[0]), slice(0, output.shape[1])] + [
-        slice(0, (signal.size(i) - kernel.size(i) + 1)) for i in range(2, signal.ndim)
+    crop_slices = [slice(0, output.size(0)), slice(0, output.size(1))] + [
+        slice(0, (signal.size(i) - kernel.size(i) + 1), stride)
+        for i in range(2, signal.ndim)
     ]
     output = output[crop_slices].contiguous()
 
@@ -80,6 +87,7 @@ class _FFTConv(nn.Module):
         out_channels: int,
         kernel_size: int,
         padding: int = 0,
+        stride: int = 1,
         bias: bool = True,
     ):
         """
@@ -88,6 +96,7 @@ class _FFTConv(nn.Module):
             out_channels: (int) Number of channels in output tensors
             kernel_size: (int) Square radius of the convolution kernel
             padding: (int) Amount of zero-padding to add to the input tensor
+            stride: (int) Stride size for computing output values
             bias: (bool) If True, includes bias, which is added after convolution
         """
         super().__init__()
@@ -95,6 +104,7 @@ class _FFTConv(nn.Module):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.padding = padding
+        self.stride = stride
         self.use_bias = bias
 
         self.weight = torch.empty(0)
@@ -106,6 +116,7 @@ class _FFTConv(nn.Module):
             self.weight,
             bias=self.bias,
             padding=self.padding,
+            stride=self.stride,
         )
 
 
@@ -116,14 +127,11 @@ class FFTConv1d(_FFTConv):
         out_channels: int,
         kernel_size: int,
         padding: int = 0,
+        stride: int = 1,
         bias: bool = True,
     ):
         super().__init__(
-            in_channels,
-            out_channels,
-            kernel_size,
-            padding=padding,
-            bias=bias,
+            in_channels, out_channels, kernel_size, padding=padding, bias=bias,
         )
         self.weight = nn.Parameter(torch.randn(out_channels, in_channels, kernel_size))
 
@@ -135,6 +143,7 @@ class FFTConv2d(_FFTConv):
         out_channels: int,
         kernel_size: int,
         padding: int = 0,
+        stride: int = 1,
         bias: bool = True,
     ):
         super().__init__(
@@ -142,6 +151,7 @@ class FFTConv2d(_FFTConv):
             out_channels,
             kernel_size,
             padding=padding,
+            stride=stride,
             bias=bias,
         )
         self.weight = nn.Parameter(
@@ -150,13 +160,13 @@ class FFTConv2d(_FFTConv):
 
 
 class FFTConv3d(_FFTConv):
-
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
         kernel_size: int,
         padding: int = 0,
+        stride: int = 1,
         bias: bool = True,
     ):
         super().__init__(
@@ -164,6 +174,7 @@ class FFTConv3d(_FFTConv):
             out_channels,
             kernel_size,
             padding=padding,
+            stride=stride,
             bias=bias,
         )
         self.weight = nn.Parameter(
