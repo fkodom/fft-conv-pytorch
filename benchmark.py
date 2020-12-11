@@ -1,4 +1,4 @@
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, Union, Iterable
 from timeit import Timer
 
 import torch
@@ -29,7 +29,11 @@ def benchmark(fn: Callable, *args, num_iterations: int = 10, **kwargs) -> Benchm
 
 
 def benchmark_conv(
-    signal: Tensor, kernel: Tensor, bias: Tensor, padding: int = 0, stride: int = 1
+    signal: Tensor,
+    kernel: Tensor,
+    bias: Tensor,
+    padding: Union[int, Iterable[int]] = 0,
+    stride: Union[int, Iterable[int]] = 1,
 ):
     print(f"Signal size: {signal.shape}")
     print(f"Kernel size: {kernel.shape}")
@@ -54,24 +58,27 @@ def benchmark_conv(
 
 print("\n--- 1D Convolution ---")
 benchmark_conv(
-    signal=torch.randn(3, 3, 4096),
+    signal=torch.randn(3, 3, 4091),
     kernel=torch.randn(2, 3, 1025),
     bias=torch.randn(2),
     padding=512,
+    stride=3,
 )
 
 print("\n--- 2D Convolution ---")
 benchmark_conv(
-    signal=torch.randn(3, 3, 256, 256),
-    kernel=torch.randn(2, 3, 21, 21),
+    signal=torch.randn(3, 3, 256, 235),
+    kernel=torch.randn(2, 3, 19, 21),
     bias=torch.randn(2),
-    padding=10,
+    padding=(9, 10),
+    stride=(2, 3),
 )
 
 print("\n--- 3D Convolution ---")
 benchmark_conv(
-    signal=torch.randn(3, 3, 64, 64, 64),
-    kernel=torch.randn(2, 3, 9, 9, 9),
+    signal=torch.randn(3, 3, 64, 72, 61),
+    kernel=torch.randn(2, 3, 5, 7, 9),
     bias=torch.randn(2),
-    padding=4,
+    padding=(2, 3, 4),
+    stride=(1, 2, 3)
 )

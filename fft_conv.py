@@ -75,15 +75,23 @@ def fft_conv(
     # Pad the input signal & kernel tensors
     signal_padding = [p for p in padding_[::-1] for _ in range(2)]
     signal = f.pad(signal, signal_padding)
+
+    # Because PyTorch computes a *one-sided* FFT, we need the final dimension to
+    # have *even* length.  Just pad with one more zero if the final dimension is odd.
+    if signal.size(-1) % 2:
+        signal_ = f.pad(signal, [0, 1])
+    else:
+        signal_ = signal
+
     kernel_padding = [
         pad
-        for i in reversed(range(2, signal.ndim))
-        for pad in [0, signal.size(i) - kernel.size(i)]
+        for i in reversed(range(2, signal_.ndim))
+        for pad in [0, signal_.size(i) - kernel.size(i)]
     ]
     padded_kernel = f.pad(kernel, kernel_padding)
 
     # Perform fourier convolution -- FFT, matrix multiply, then IFFT
-    signal_fr = rfftn(signal, dim=tuple(range(2, signal.ndim)))
+    signal_fr = rfftn(signal_, dim=tuple(range(2, signal.ndim)))
     kernel_fr = rfftn(padded_kernel, dim=tuple(range(2, signal.ndim)))
 
     kernel_fr.imag *= -1
