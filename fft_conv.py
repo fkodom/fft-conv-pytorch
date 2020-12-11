@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Tuple, Union, Iterable
 
 import torch
 from torch import nn, Tensor
@@ -24,12 +25,33 @@ def complex_matmul(a: Tensor, b: Tensor) -> Tensor:
     return c
 
 
+def to_ntuple(val: Union[int, Iterable[int]], n: int) -> Tuple[int, ...]:
+    """Casts to a tuple with length 'n'.  Useful for automatically computing the
+    padding and stride for convolutions, where users may only provide an integer.
+
+    Args:
+        val: (Union[int, Iterable[int]]) Value to cast into a tuple.
+        n: (int) Desired length of the tuple
+
+    Returns:
+        (Tuple[int, ...]) Tuple of length 'n'
+    """
+    if isinstance(val, Iterable):
+        out = tuple(val)
+        if len(out) == n:
+            return out
+        else:
+            raise ValueError(f"Cannot cast tuple of length {len(out)} to length {n}.")
+    else:
+        return n * (val,)
+
+
 def fft_conv(
     signal: Tensor,
     kernel: Tensor,
     bias: Tensor = None,
-    padding: int = 0,
-    stride: int = 1,
+    padding: Union[int, Iterable[int]] = 0,
+    stride: Union[int, Iterable[int]] = 1,
 ) -> Tensor:
     """Performs N-d convolution of Tensors using a fast fourier transform, which
     is very fast for large kernel sizes. Also, optionally adds a bias Tensor after
@@ -38,15 +60,20 @@ def fft_conv(
     Args:
         signal: (Tensor) Input tensor to be convolved with the kernel.
         kernel: (Tensor) Convolution kernel.
-        bias: (Optional, Tensor) Bias tensor to add to the output.
-        padding: (int) Number of zero samples to pad the input on the last dimension.
-        stride: (int) Stride size for computing output values.
+        bias: (Tensor) Bias tensor to add to the output.
+        padding: (Union[int, Iterable[int]) Number of zero samples to pad the
+            input on the last dimension.
+        stride: (Union[int, Iterable[int]) Stride size for computing output values.
 
     Returns:
         (Tensor) Convolved tensor
     """
+    # Cast padding & stride to tuples.
+    padding_ = to_ntuple(padding, n=signal.ndim - 2)
+    stride_ = to_ntuple(stride, n=signal.ndim - 2)
+
     # Pad the input signal & kernel tensors
-    signal_padding = (signal.ndim - 2) * [padding, padding]
+    signal_padding = [p for p in padding_[::-1] for _ in range(2)]
     signal = f.pad(signal, signal_padding)
     kernel_padding = [
         pad
@@ -65,7 +92,7 @@ def fft_conv(
 
     # Remove extra padded values
     crop_slices = [slice(0, output.size(0)), slice(0, output.size(1))] + [
-        slice(0, (signal.size(i) - kernel.size(i) + 1), stride)
+        slice(0, (signal.size(i) - kernel.size(i) + 1), stride_[i - 2])
         for i in range(2, signal.ndim)
     ]
     output = output[crop_slices].contiguous()
@@ -85,18 +112,20 @@ class _FFTConv(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: int,
-        padding: int = 0,
-        stride: int = 1,
+        kernel_size: Union[int, Iterable[int]],
+        padding: Union[int, Iterable[int]] = 0,
+        stride: Union[int, Iterable[int]] = 1,
         bias: bool = True,
+        ndim: int = 1,
     ):
         """
         Args:
             in_channels: (int) Number of channels in input tensors
             out_channels: (int) Number of channels in output tensors
-            kernel_size: (int) Square radius of the convolution kernel
-            padding: (int) Amount of zero-padding to add to the input tensor
-            stride: (int) Stride size for computing output values
+            kernel_size: (Union[int, Iterable[int]) Square radius of the kernel
+            padding: (Union[int, Iterable[int]) Number of zero samples to pad the
+                input on the last dimension.
+            stride: (Union[int, Iterable[int]) Stride size for computing output values.
             bias: (bool) If True, includes bias, which is added after convolution
         """
         super().__init__()
@@ -107,7 +136,8 @@ class _FFTConv(nn.Module):
         self.stride = stride
         self.use_bias = bias
 
-        self.weight = torch.empty(0)
+        kernel_size = to_ntuple(kernel_size, ndim)
+        self.weight = nn.Parameter(torch.randn(out_channels, in_channels, *kernel_size))
         self.bias = nn.Parameter(torch.randn(out_channels,)) if bias else None
 
     def forward(self, signal):
@@ -120,65 +150,6 @@ class _FFTConv(nn.Module):
         )
 
 
-class FFTConv1d(_FFTConv):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: int,
-        padding: int = 0,
-        stride: int = 1,
-        bias: bool = True,
-    ):
-        super().__init__(
-            in_channels, out_channels, kernel_size, padding=padding, bias=bias,
-        )
-        self.weight = nn.Parameter(torch.randn(out_channels, in_channels, kernel_size))
-
-
-class FFTConv2d(_FFTConv):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: int,
-        padding: int = 0,
-        stride: int = 1,
-        bias: bool = True,
-    ):
-        super().__init__(
-            in_channels,
-            out_channels,
-            kernel_size,
-            padding=padding,
-            stride=stride,
-            bias=bias,
-        )
-        self.weight = nn.Parameter(
-            torch.randn(out_channels, in_channels, kernel_size, kernel_size)
-        )
-
-
-class FFTConv3d(_FFTConv):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: int,
-        padding: int = 0,
-        stride: int = 1,
-        bias: bool = True,
-    ):
-        super().__init__(
-            in_channels,
-            out_channels,
-            kernel_size,
-            padding=padding,
-            stride=stride,
-            bias=bias,
-        )
-        self.weight = nn.Parameter(
-            torch.randn(
-                out_channels, in_channels, kernel_size, kernel_size, kernel_size
-            )
-        )
+FFTConv1d = partial(_FFTConv, ndim=1)
+FFTConv2d = partial(_FFTConv, ndim=2)
+FFTConv3d = partial(_FFTConv, ndim=3)
