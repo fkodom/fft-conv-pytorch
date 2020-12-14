@@ -154,15 +154,19 @@ class _FFTConv(nn.Module):
 
         if in_channels % 2 != 0:
             raise ValueError(
-                f"'in_channels' ({in_channels}) must be divisible by 'groups' ({groups})."
+                "'in_channels' must be divisible by 'groups'."
+                f"Found: in_channels={in_channels}, groups={groups}."
             )
         if out_channels % 2 != 0:
             raise ValueError(
-                f"'out_channels' ({out_channels}) must be divisible by 'groups' ({groups})."
+                "'out_channels' must be divisible by 'groups'."
+                f"Found: out_channels={out_channels}, groups={groups}."
             )
 
         kernel_size = to_ntuple(kernel_size, ndim)
-        self.weight = nn.Parameter(torch.randn(out_channels, in_channels // groups, *kernel_size))
+        self.weight = nn.Parameter(
+            torch.randn(out_channels, in_channels // groups, *kernel_size)
+        )
         self.bias = nn.Parameter(torch.randn(out_channels,)) if bias else None
 
     def forward(self, signal):
