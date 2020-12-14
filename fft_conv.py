@@ -7,11 +7,15 @@ from torch.fft import rfftn, irfftn
 import torch.nn.functional as f
 
 
-def complex_matmul(a: Tensor, b: Tensor) -> Tensor:
+def complex_matmul(a: Tensor, b: Tensor, groups: int = 1) -> Tensor:
     """Multiplies two complex-valued tensors."""
-    # Scalar matrix multiplication of two tensors, over only the first two dimensions.
-    # Dimensions 3 and higher will have the same shape after multiplication.
-    scalar_matmul = partial(torch.einsum, "ab..., cb... -> ac...")
+    # Scalar matrix multiplication of two tensors, over only the first channel
+    # dimensions. Dimensions 3 and higher will have the same shape after multiplication.
+    # We also allow for "grouped" multiplications, where multiple sections of channels
+    # are multiplied independently of one another (required for group convolutions).
+    scalar_matmul = partial(torch.einsum, "agc..., gbc... -> agb...")
+    a = a.view(a.size(0), groups, -1, *a.shape[2:])
+    b = b.view(groups, -1, *b.shape[1:])
 
     # Compute the real and imaginary parts independently, then manually insert them
     # into the output Tensor.  This is fairly hacky but necessary for PyTorch 1.7.0,
@@ -22,7 +26,7 @@ def complex_matmul(a: Tensor, b: Tensor) -> Tensor:
     c = torch.zeros(real.shape, dtype=torch.complex64, device=a.device)
     c.real, c.imag = real, imag
 
-    return c
+    return c.view(c.size(0), -1, *c.shape[3:])
 
 
 def to_ntuple(val: Union[int, Iterable[int]], n: int) -> Tuple[int, ...]:
@@ -52,6 +56,7 @@ def fft_conv(
     bias: Tensor = None,
     padding: Union[int, Iterable[int]] = 0,
     stride: Union[int, Iterable[int]] = 1,
+    groups: int = 1,
 ) -> Tensor:
     """Performs N-d convolution of Tensors using a fast fourier transform, which
     is very fast for large kernel sizes. Also, optionally adds a bias Tensor after
@@ -78,7 +83,7 @@ def fft_conv(
 
     # Because PyTorch computes a *one-sided* FFT, we need the final dimension to
     # have *even* length.  Just pad with one more zero if the final dimension is odd.
-    if signal.size(-1) % 2:
+    if signal.size(-1) % 2 != 0:
         signal_ = f.pad(signal, [0, 1])
     else:
         signal_ = signal
@@ -91,11 +96,12 @@ def fft_conv(
     padded_kernel = f.pad(kernel, kernel_padding)
 
     # Perform fourier convolution -- FFT, matrix multiply, then IFFT
+    # signal_ = signal_.reshape(signal_.size(0), groups, -1, *signal_.shape[2:])
     signal_fr = rfftn(signal_, dim=tuple(range(2, signal.ndim)))
     kernel_fr = rfftn(padded_kernel, dim=tuple(range(2, signal.ndim)))
 
     kernel_fr.imag *= -1
-    output_fr = complex_matmul(signal_fr, kernel_fr)
+    output_fr = complex_matmul(signal_fr, kernel_fr, groups=groups)
     output = irfftn(output_fr, dim=tuple(range(2, signal.ndim)))
 
     # Remove extra padded values
@@ -123,6 +129,7 @@ class _FFTConv(nn.Module):
         kernel_size: Union[int, Iterable[int]],
         padding: Union[int, Iterable[int]] = 0,
         stride: Union[int, Iterable[int]] = 1,
+        groups: int = 1,
         bias: bool = True,
         ndim: int = 1,
     ):
@@ -142,10 +149,20 @@ class _FFTConv(nn.Module):
         self.kernel_size = kernel_size
         self.padding = padding
         self.stride = stride
+        self.groups = groups
         self.use_bias = bias
 
+        if in_channels % 2 != 0:
+            raise ValueError(
+                f"'in_channels' ({in_channels}) must be divisible by 'groups' ({groups})."
+            )
+        if out_channels % 2 != 0:
+            raise ValueError(
+                f"'out_channels' ({out_channels}) must be divisible by 'groups' ({groups})."
+            )
+
         kernel_size = to_ntuple(kernel_size, ndim)
-        self.weight = nn.Parameter(torch.randn(out_channels, in_channels, *kernel_size))
+        self.weight = nn.Parameter(torch.randn(out_channels, in_channels // groups, *kernel_size))
         self.bias = nn.Parameter(torch.randn(out_channels,)) if bias else None
 
     def forward(self, signal):
@@ -155,6 +172,7 @@ class _FFTConv(nn.Module):
             bias=self.bias,
             padding=self.padding,
             stride=self.stride,
+            groups=self.groups,
         )
 
 
