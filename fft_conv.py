@@ -4,7 +4,7 @@ import math
 
 import torch
 from torch import nn, Tensor
-from torch.fft import rfftn, irfftn, ifftn, fftn, fftshift, ifftshift, rfft, irfft, fft, ifft
+from torch.fft import rfftn, ifftn, irfft, ifft
 import torch.nn.functional as f
 from torch.nn.modules.utils import _reverse_repeat_tuple
 
