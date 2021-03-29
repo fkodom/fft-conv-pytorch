@@ -105,11 +105,13 @@ def fft_conv(
     output = irfftn(output_fr, dim=tuple(range(2, signal.ndim)))
 
     # Remove extra padded values
-    crop_slices = [slice(0, output.size(0)), slice(0, output.size(1))] + [
-        slice(0, (signal.size(i) - kernel.size(i) + 1), stride_[i - 2])
-        for i in range(2, signal.ndim)
-    ]
-    output = output[crop_slices].contiguous()
+    new_stride = [output.stride(0), output.stride(1)]
+    new_size = [output.shape[0], output.shape[1]]
+    for i in range(2, signal.ndim):
+        new_stride.append(output.stride(i) * stride_[i-2])
+        new_size.append((signal.size(i) - kernel.size(i)) // stride_[i - 2] + 1)
+
+    output = output.as_strided(new_size, new_stride).contiguous()
 
     # Optionally, add a bias term before returning.
     if bias is not None:
