@@ -57,7 +57,6 @@ def to_ntuple(val: Union[int, Iterable[int]], n: int) -> Tuple[int, ...]:
         return n * (val,)
 
 
-
 def fft_conv(
     signal: Tensor,
     kernel: Tensor,
@@ -97,11 +96,14 @@ def fft_conv(
         factor = stride_[i - 2]
         if not len(extra_padding):
             if signal.size(i) % 2 and factor % 2:
-                    factor *= 2
+                factor *= 2
         offset = signal.size(i) % factor
         extra_padding += [0, factor - offset if offset else 0]
 
-    signal_ = f.pad(signal, extra_padding)
+    if sum(extra_padding):
+        signal_ = f.pad(signal, extra_padding)
+    else:
+        signal_ = signal
     kernel_padding = [
         pad
         for i in reversed(range(2, signal_.ndim))
@@ -126,15 +128,17 @@ def fft_conv(
             step = output_fr.size(i) // stride_[i - 2]
             unfold_shape += [stride_[i - 2], step]
             sum_dims.append(len(unfold_shape) - 2)
-        
+
         unfold_shape.append(-1)
         if len(sum_dims):
             output_fr = output_fr.view(*unfold_shape).mean(sum_dims)
         output_fr = ifftn(output_fr, dim=tuple(range(2, signal.ndim - 1)))
 
     if stride_[-1] != 1:
-        output_fr = torch.cat((output_fr, output_fr.flip(-1)[..., 1:-1].conj()), dim=-1)
-        output = ifft(output_fr.view(*output_fr.shape[:-1], stride_[-1], -1).mean(-2)).real
+        output_fr = torch.cat(
+            (output_fr, output_fr.flip(-1)[..., 1:-1].conj()), dim=-1)
+        output = ifft(output_fr.view(
+            *output_fr.shape[:-1], stride_[-1], -1).mean(-2)).real
     else:
         output = irfft(output_fr)
 
