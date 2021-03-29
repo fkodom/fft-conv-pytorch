@@ -1,16 +1,11 @@
 from functools import partial
 from typing import Tuple, Union, Iterable
-import math
 
 import torch
 from torch import nn, Tensor
-from torch.fft import rfftn, irfftn, ifftn, fftn, fftshift, ifftshift, rfft, irfft, fft, ifft
+from torch.fft import rfftn, ifftn, irfft, ifft
 import torch.nn.functional as f
 from torch.nn.modules.utils import _reverse_repeat_tuple
-
-
-def lcm(a, b):
-    return abs(a*b) // math.gcd(a, b)
 
 
 def complex_matmul(a: Tensor, b: Tensor, groups: int = 1) -> Tensor:
@@ -104,17 +99,12 @@ def fft_conv(
         signal_ = f.pad(signal, extra_padding)
     else:
         signal_ = signal
-    kernel_padding = [
-        pad
-        for i in reversed(range(2, signal_.ndim))
-        for pad in [0, signal_.size(i) - kernel.size(i)]
-    ]
-    padded_kernel = f.pad(kernel, kernel_padding)
 
     # Perform fourier convolution -- FFT, matrix multiply, then IFFT
     # signal_ = signal_.reshape(signal_.size(0), groups, -1, *signal_.shape[2:])
     signal_fr = rfftn(signal_, dim=tuple(range(2, signal.ndim)))
-    kernel_fr = rfftn(padded_kernel, dim=tuple(range(2, signal.ndim)))
+    kernel_fr = rfftn(
+        kernel, s=signal_.shape[2:], dim=tuple(range(2, signal.ndim)))
 
     output_fr = complex_matmul(signal_fr, kernel_fr.conj(), groups=groups)
 
@@ -191,12 +181,12 @@ class _FFTConv(nn.Module):
         self.groups = groups
         self.use_bias = bias
 
-        if in_channels % 2 != 0:
+        if in_channels % groups != 0:
             raise ValueError(
                 "'in_channels' must be divisible by 'groups'."
                 f"Found: in_channels={in_channels}, groups={groups}."
             )
-        if out_channels % 2 != 0:
+        if out_channels % groups != 0:
             raise ValueError(
                 "'out_channels' must be divisible by 'groups'."
                 f"Found: out_channels={out_channels}, groups={groups}."
