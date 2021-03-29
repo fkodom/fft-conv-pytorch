@@ -29,8 +29,8 @@ def complex_matmul(a: Tensor, b: Tensor, groups: int = 1) -> Tensor:
     # idiomatic PyTorch code, but it should work for all future versions (>= 1.7.0).
     real = scalar_matmul(a.real, b.real) - scalar_matmul(a.imag, b.imag)
     imag = scalar_matmul(a.imag, b.real) + scalar_matmul(a.real, b.imag)
-    c = torch.zeros(real.shape, dtype=torch.complex64, device=a.device)
-    c.real, c.imag = real, imag
+
+    c = torch.view_as_complex(torch.stack((real, imag), -1))
 
     return c.view(c.size(0), -1, *c.shape[3:])
 
@@ -55,6 +55,7 @@ def to_ntuple(val: Union[int, Iterable[int]], n: int) -> Tuple[int, ...]:
                 f"Cannot cast tuple of length {len(out)} to length {n}.")
     else:
         return n * (val,)
+
 
 
 def fft_conv(
@@ -90,18 +91,17 @@ def fft_conv(
 
     # Because PyTorch computes a *one-sided* FFT, we need the final dimension to
     # have *even* length.  Just pad with one more zero if the final dimension is odd.
-    if signal.size(-1) % 2 != 0:
-        signal_ = f.pad(signal, [0, 1])
-    else:
-        signal_ = signal
 
-    lcm_padding = []
-    for i in range(signal.ndim-1, 1, -1):
-        lcm_padding += [0, lcm(signal_.size(i),
-                               stride_[i-2]) - signal_.size(i)]
-    # print(lcm_padding)
-    signal_ = f.pad(signal_, lcm_padding)
+    extra_padding = []
+    for i in range(signal.ndim - 1, 1, -1):
+        factor = stride_[i - 2]
+        if not len(extra_padding):
+            if signal.size(i) % 2 and factor % 2:
+                    factor *= 2
+        offset = signal.size(i) % factor
+        extra_padding += [0, factor - offset if offset else 0]
 
+    signal_ = f.pad(signal, extra_padding)
     kernel_padding = [
         pad
         for i in reversed(range(2, signal_.ndim))
@@ -116,56 +116,27 @@ def fft_conv(
 
     output_fr = complex_matmul(signal_fr, kernel_fr.conj(), groups=groups)
 
-    # symmetric
     if signal.ndim > 3:
-        output_fr = fftshift(output_fr, dim=tuple(range(2, signal.ndim - 1)))
+        unfold_shape = [output_fr.size(0), output_fr.size(1)]
+        sum_dims = []
         for i in range(2, signal.ndim - 1):
             if stride_[i - 2] == 1:
+                unfold_shape.append(output_fr.size(i))
                 continue
             step = output_fr.size(i) // stride_[i - 2]
-            origin_center = output_fr.size(i) // 2
-            down_center = step // 2
-            window_start = origin_center - down_center
-
-            pad_front = window_start % step
-            if pad_front:
-                pad_front = step - pad_front
-
-            pad_back = (output_fr.size(i) - window_start) % step
-            if pad_back:
-                pad_back = step - pad_back
-
-            output_fr = f.pad(output_fr, [0, 0] * (signal.ndim - i - 1) + [pad_front, pad_back])
-            output_fr = output_fr.view(
-                *output_fr.shape[:i], -1, step, *output_fr.shape[i+1:]).sum(i) / stride_[i-2]
-
-        output_fr = ifftshift(output_fr, dim=tuple(range(2, signal.ndim - 1)))
+            unfold_shape += [stride_[i - 2], step]
+            sum_dims.append(len(unfold_shape) - 2)
+        
+        unfold_shape.append(-1)
+        if len(sum_dims):
+            output_fr = output_fr.view(*unfold_shape).mean(sum_dims)
         output_fr = ifftn(output_fr, dim=tuple(range(2, signal.ndim - 1)))
 
-    #output = irfftn(output_fr, dim=-1)
-    output_fr = torch.cat(
-        (output_fr, output_fr.flip(-1)[..., 1:-1].conj()), dim=-1)
-    output_fr = fftshift(output_fr, dim=-1)
     if stride_[-1] != 1:
-        step = output_fr.size(-1) // stride_[-1]
-        origin_center = output_fr.size(-1) // 2
-        down_center = step // 2
-        window_start = origin_center - down_center
-
-        pad_front = window_start % step
-        if pad_front:
-            pad_front = step - pad_front
-
-        pad_back = (output_fr.size(-1) - window_start) % step
-        if pad_back:
-            pad_back = step - pad_back
-
-        output_fr = f.pad(output_fr, [pad_front, pad_back])
-        output_fr = output_fr.view(
-            *output_fr.shape[:-1], -1, step).sum(-2) / stride_[-1]
-
-    output_fr = ifftshift(output_fr, dim=-1)
-    output = ifft(output_fr, dim=-1).real
+        output_fr = torch.cat((output_fr, output_fr.flip(-1)[..., 1:-1].conj()), dim=-1)
+        output = ifft(output_fr.view(*output_fr.shape[:-1], stride_[-1], -1).mean(-2)).real
+    else:
+        output = irfft(output_fr)
 
     # Remove extra padded values
     new_size = [output.shape[0], output.shape[1]]
