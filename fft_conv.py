@@ -9,10 +9,6 @@ import torch.nn.functional as f
 from torch.nn.modules.utils import _reverse_repeat_tuple
 
 
-def lcm(a, b):
-    return abs(a*b) // math.gcd(a, b)
-
-
 def complex_matmul(a: Tensor, b: Tensor, groups: int = 1) -> Tensor:
     """Multiplies two complex-valued tensors."""
     # Scalar matrix multiplication of two tensors, over only the first channel
