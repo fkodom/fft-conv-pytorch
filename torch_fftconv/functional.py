@@ -53,7 +53,8 @@ def fft_conv1d(input: Tensor, weight: Tensor, bias: Optional[Tensor] = None,
     max_s_size = max(padded_input.size(2), weight.size(2) * dilation_[0])
 
     # find s size that can be divided by stride and dilation
-    factor = _lcm(stride_[0], dilation_[0] * 2) * 2
+    factor = _lcm(stride_[0], dilation_[0] *
+                  2 if dilation_[0] > 1 else dilation_[0]) * 2
     offset = max_s_size % factor
     if offset:
         max_s_size += factor - offset
@@ -89,7 +90,7 @@ def fft_conv1d(input: Tensor, weight: Tensor, bias: Optional[Tensor] = None,
     if bias is not None:
         output += bias.unsqueeze(1)
 
-    raise output
+    return output
 
 
 def fft_conv2d(*args, **kwargs):
