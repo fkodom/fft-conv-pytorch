@@ -209,6 +209,6 @@ class _FFTConv(nn.Module):
         )
 
 
-FFTConv1d = partial(_FFTConv, ndim=1)
-FFTConv2d = partial(_FFTConv, ndim=2)
-FFTConv3d = partial(_FFTConv, ndim=3)
+#FFTConv1d = partial(_FFTConv, ndim=1)
+#FFTConv2d = partial(_FFTConv, ndim=2)
+#FFTConv3d = partial(_FFTConv, ndim=3)
