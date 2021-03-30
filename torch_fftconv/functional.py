@@ -1,7 +1,5 @@
 import torch
 from torch import Tensor
-from torch import fft
-from torch._torch_docs import reproducibility_notes, tf32_notes
 from torch.nn.modules.utils import _single, _pair, _triple, _reverse_repeat_tuple
 import torch.nn.functional as F
 from torch.fft import rfft, fftn, rfftn, ifft, irfft, ifftn
@@ -101,7 +99,7 @@ def _fft_convnd(input: Tensor,
                 tmp.append(W[..., 1:])
 
         W = torch.cat(tmp, -1)
-    
+
     if len(weight_s) > 1:
         W = fftn(W, s=weight_s[:-1], dim=tuple(range(2, W.ndim - 1)))
         repeats = (1, 1) + dilation[:-1] + (1,)

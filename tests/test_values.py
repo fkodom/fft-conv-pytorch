@@ -66,16 +66,16 @@ def test_conv2d(batch, length,
 
 
 @pytest.mark.parametrize('batch', [2])
-@pytest.mark.parametrize('in_channels', [8, 32])
-@pytest.mark.parametrize('out_channels', [4, 16])
+@pytest.mark.parametrize('in_channels', [4, 16])
+@pytest.mark.parametrize('out_channels', [2, 8])
 @pytest.mark.parametrize('length', [(53, 53, 59)])
 @pytest.mark.parametrize('kernel_size', [9, 16])
 @pytest.mark.parametrize('stride', [1, 2, 3])
 @pytest.mark.parametrize('dilation', [1, 2, 3])
-@pytest.mark.parametrize('padding', [0])
+@pytest.mark.parametrize('padding', [4])
 @pytest.mark.parametrize('bias', [True, False])
 @pytest.mark.parametrize('groups', [1, 2])
-@pytest.mark.parametrize('padding_mode', ['zeros', 'reflect'])
+@pytest.mark.parametrize('padding_mode', ['zeros', 'circular'])
 def test_conv3d(batch, length,
                 in_channels, out_channels,
                 kernel_size, stride, padding, dilation, groups, bias, padding_mode):
