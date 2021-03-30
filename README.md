@@ -1,17 +1,19 @@
 # FFT Conv PyTorch
 
-Implementation of 1D, 2D, and 3D FFT convolutions in PyTorch.  
-* Faster than direct convolution for large kernels.
-* **Much slower** than direct convolution for small kernels.
-* Typically, FFT convolution is faster when the kernel has >100 elements.
-    * Dependent on machine and PyTorch version.
+This is a fork of original [fft-conv-pytorch](https://github.com/fkodom/fft-conv-pytorch).
+I made some modifications to support dilated and strided convolution, so it can be a drop-in-replacement of original PyTorch `Conv*d` modules and `conv*d` functions, with the same function parameters and behavior.
 
+### Install
+
+```commandline
+pip install git+https://github.com/yoyololicon/fft-conv-pytorch
+```
 
 ### Example Usage
 
 ```python
 import torch
-from fft_conv import fft_conv, FFTConv1d
+from torch_fftconv import fft_conv1d, FFTConv1d
 
 # Create dummy data.  
 #     Data shape: (batch, channels, length)
@@ -23,12 +25,12 @@ kernel = torch.randn(2, 3, 128)
 bias = torch.randn(2)
 
 # Functional execution.  (Easiest for generic use cases.)
-out = fft_conv(signal, kernel, bias=bias)
+out = fft_conv1d(signal, kernel, bias=bias)
 
 # Object-oriented execution.  (Requires some extra work, since the 
 # defined classes were designed for use in neural networks.)
 fft_conv = FFTConv1d(3, 2, 128, bias=True)
 fft_conv.weight = torch.nn.Parameter(kernel)
 fft_conv.bias = torch.nn.Parameter(bias)
-out = fft_conv(signal)
+out = fft_conv1d(signal)
 ```
