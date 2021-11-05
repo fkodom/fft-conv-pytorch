@@ -152,12 +152,12 @@ class _FFTConv(nn.Module):
         self.groups = groups
         self.use_bias = bias
 
-        if in_channels % 2 != 0:
+        if in_channels % groups != 0:
             raise ValueError(
                 "'in_channels' must be divisible by 'groups'."
                 f"Found: in_channels={in_channels}, groups={groups}."
             )
-        if out_channels % 2 != 0:
+        if out_channels % groups != 0:
             raise ValueError(
                 "'out_channels' must be divisible by 'groups'."
                 f"Found: out_channels={out_channels}, groups={groups}."
@@ -167,7 +167,7 @@ class _FFTConv(nn.Module):
         self.weight = nn.Parameter(
             torch.randn(out_channels, in_channels // groups, *kernel_size)
         )
-        self.bias = nn.Parameter(torch.randn(out_channels,)) if bias else None
+        self.bias = nn.Parameter(torch.randn(out_channels)) if bias else None
 
     def forward(self, signal):
         return fft_conv(

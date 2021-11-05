@@ -1,9 +1,9 @@
-# FFT Conv PyTorch
+# fft-conv-pytorch
 
 Implementation of 1D, 2D, and 3D FFT convolutions in PyTorch.  
 * Faster than direct convolution for large kernels.
 * **Much slower** than direct convolution for small kernels.
-* Typically, FFT convolution is faster when the kernel has >100 elements.
+* In my local tests, FFT convolution is faster when the kernel has >100 or so elements.
     * Dependent on machine and PyTorch version.
 
 
@@ -11,7 +11,7 @@ Implementation of 1D, 2D, and 3D FFT convolutions in PyTorch.
 
 ```python
 import torch
-from fft_conv import fft_conv, FFTConv1d
+from fft_conv_pytorch import fft_conv, FFTConv1d
 
 # Create dummy data.  
 #     Data shape: (batch, channels, length)
