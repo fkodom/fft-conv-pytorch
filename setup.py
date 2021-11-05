@@ -7,7 +7,7 @@ import setuptools
 
 def get_version_tag() -> str:
     try:
-        version = os.environ["SMARTML_VERSION"]
+        version = os.environ["FFT_CONV_PYTORCH_VERSION"]
     except KeyError:
         version = getoutput("git describe --tags --abbrev=0")
 
