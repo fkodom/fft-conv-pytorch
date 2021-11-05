@@ -1,10 +1,10 @@
 from functools import partial
-from typing import Tuple, Union, Iterable
+from typing import Iterable, Tuple, Union
 
 import torch
-from torch import nn, Tensor
-from torch.fft import rfftn, irfftn
 import torch.nn.functional as f
+from torch import Tensor, nn
+from torch.fft import irfftn, rfftn
 
 
 def complex_matmul(a: Tensor, b: Tensor, groups: int = 1) -> Tensor:

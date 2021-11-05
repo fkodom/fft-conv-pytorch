@@ -1,7 +1,8 @@
-from distutils.core import setup
 import os
-import setuptools
+from distutils.core import setup
 from subprocess import getoutput
+
+import setuptools
 
 
 def get_version_tag() -> str:
@@ -24,8 +25,18 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     install_requires=[
+        "numpy",
         "torch>=1.7",
     ],
+    extras_require={
+        "test": [
+            "black",
+            "flake8",
+            "isort",
+            "pytest",
+            "pytest-cov",
+        ]
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

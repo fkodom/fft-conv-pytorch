@@ -1,11 +1,11 @@
-from typing import Union, Iterable
+from typing import Iterable, Union
 
 import pytest
 import torch
-from torch import Tensor
 import torch.nn.functional as f
+from torch import Tensor
 
-from fft_conv_pytorch.fft_conv import fft_conv, _FFTConv
+from fft_conv_pytorch.fft_conv import _FFTConv, fft_conv
 
 
 def _assert_almost_equal(x: Tensor, y: Tensor) -> bool:

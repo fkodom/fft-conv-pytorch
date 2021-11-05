@@ -1,0 +1,35 @@
+name: Test
+
+on:
+  workflow_dispatch: {}
+  push: {}
+  release: {}
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python: ["3.7", "3.8", "3.9", "3.10"]
+        torch: ["1.7", "1.8", "1.9", "1.10"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install Package
+        run: pip install .[test]
+
+      - name: Test
+        run: |
+          pytest --cov --cov-report term-missing --cov-fail-under 90 tests/
+          black --check .
+          isort --diff .
+          flake8 .
