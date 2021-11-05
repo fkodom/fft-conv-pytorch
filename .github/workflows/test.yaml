@@ -3,7 +3,6 @@ name: Test
 on:
   workflow_dispatch: {}
   push: {}
-  release: {}
 
 jobs:
   test:

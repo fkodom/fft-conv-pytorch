@@ -7,6 +7,20 @@ Implementation of 1D, 2D, and 3D FFT convolutions in PyTorch.
     * Dependent on machine and PyTorch version.
 
 
+## Install
+
+Using `pip`:
+```bash
+pip install fft-conv-pytorch
+```
+
+From source:
+```bash
+git clone https://github.com/fkodom/fft-conv-pytorch.git
+cd fft-conv-pytorch
+pip install .
+```
+
 ### Example Usage
 
 ```python

@@ -26,7 +26,7 @@ setup(
     long_description_content_type="text/markdown",
     install_requires=[
         "numpy",
-        "torch>=1.7,<1.10",
+        "torch>=1.7",
     ],
     extras_require={
         "test": [
