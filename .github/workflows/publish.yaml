@@ -7,9 +7,6 @@ on:
       - created
 
 env:
-  GCP_PROJECT: sense-staging
-  GCP_REGION: us-central1
-  GCP_ARTIFACT_REPOSITORY: innovation-pypi
   PYTHON_VERSION: 3.9
 
 jobs:

@@ -25,7 +25,9 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Install Package
-        run: pip install .[test]
+        run: |
+          pip install torch==${{ matrix.torch }}
+          pip install .[test]
 
       - name: Test
         run: |
