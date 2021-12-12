@@ -20,9 +20,14 @@ def complex_matmul(a: Tensor, b: Tensor, groups: int = 1) -> Tensor:
     b = torch.movedim(b, (1, 2), (b.dim() - 1, b.dim() - 2))
 
     # complex value matrix multiplication
-    c = a @ b
-    c = torch.movedim(c, c.dim() - 1, 2)
-    return c.reshape(c.size(0), -1, *c.shape[3:-1])
+    real = a.real @ b.real - a.imag @ b.imag
+    imag = a.imag @ b.real - a.real @ b.imag
+    real = torch.movedim(real, real.dim() - 1, 2).squeeze(-1)
+    imag = torch.movedim(imag, imag.dim() - 1, 2).squeeze(-1)
+    c = torch.zeros(real.shape, dtype=torch.complex64, device=a.device)
+    c.real, c.imag = real, imag
+
+    return c.reshape(c.size(0), -1, *c.shape[3:])
 
 
 def to_ntuple(val: Union[int, Iterable[int]], n: int) -> Tuple[int, ...]:
