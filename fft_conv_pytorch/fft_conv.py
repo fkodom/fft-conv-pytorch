@@ -21,7 +21,7 @@ def complex_matmul(a: Tensor, b: Tensor, groups: int = 1) -> Tensor:
 
     # complex value matrix multiplication
     real = a.real @ b.real - a.imag @ b.imag
-    imag = a.imag @ b.real - a.real @ b.imag
+    imag = a.imag @ b.real + a.real @ b.imag
     real = torch.movedim(real, real.dim() - 1, 2).squeeze(-1)
     imag = torch.movedim(imag, imag.dim() - 1, 2).squeeze(-1)
     c = torch.zeros(real.shape, dtype=torch.complex64, device=a.device)
