@@ -27,7 +27,7 @@ def complex_matmul(a: Tensor, b: Tensor, groups: int = 1) -> Tensor:
     c = torch.zeros(real.shape, dtype=torch.complex64, device=a.device)
     c.real, c.imag = real, imag
 
-    return c.reshape(c.size(0), -1, *c.shape[3:])
+    return c.view(c.size(0), -1, *c.shape[3:])
 
 
 def to_ntuple(val: Union[int, Iterable[int]], n: int) -> Tuple[int, ...]:
