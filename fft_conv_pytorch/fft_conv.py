@@ -13,20 +13,16 @@ def complex_matmul(a: Tensor, b: Tensor, groups: int = 1) -> Tensor:
     # dimensions. Dimensions 3 and higher will have the same shape after multiplication.
     # We also allow for "grouped" multiplications, where multiple sections of channels
     # are multiplied independently of one another (required for group convolutions).
-    scalar_matmul = partial(torch.einsum, "agc..., gbc... -> agb...")
     a = a.view(a.size(0), groups, -1, *a.shape[2:])
     b = b.view(groups, -1, *b.shape[1:])
 
-    # Compute the real and imaginary parts independently, then manually insert them
-    # into the output Tensor.  This is fairly hacky but necessary for PyTorch 1.7.0,
-    # because Autograd is not enabled for complex matrix operations yet.  Not exactly
-    # idiomatic PyTorch code, but it should work for all future versions (>= 1.7.0).
-    real = scalar_matmul(a.real, b.real) - scalar_matmul(a.imag, b.imag)
-    imag = scalar_matmul(a.imag, b.real) + scalar_matmul(a.real, b.imag)
-    c = torch.zeros(real.shape, dtype=torch.complex64, device=a.device)
-    c.real, c.imag = real, imag
+    a = torch.movedim(a, 2, a.dim() - 1).unsqueeze(-2)
+    b = torch.movedim(b, (1, 2), (b.dim() - 1, b.dim() - 2))
 
-    return c.view(c.size(0), -1, *c.shape[3:])
+    # complex value matrix multiplication
+    c = a @ b
+    c = torch.movedim(c, c.dim() - 1, 2)
+    return c.reshape(c.size(0), -1, *c.shape[3:-1])
 
 
 def to_ntuple(val: Union[int, Iterable[int]], n: int) -> Tuple[int, ...]:
