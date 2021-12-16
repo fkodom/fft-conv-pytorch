@@ -130,6 +130,7 @@ class _FFTConv(nn.Module):
         kernel_size: Union[int, Iterable[int]],
         padding: Union[int, Iterable[int]] = 0,
         stride: Union[int, Iterable[int]] = 1,
+        dilation: Union[int, Iterable[int]] = 1,
         groups: int = 1,
         bias: bool = True,
         ndim: int = 1,
@@ -150,6 +151,7 @@ class _FFTConv(nn.Module):
         self.kernel_size = kernel_size
         self.padding = padding
         self.stride = stride
+        self.dilation = dilation
         self.groups = groups
         self.use_bias = bias
 
@@ -165,9 +167,22 @@ class _FFTConv(nn.Module):
             )
 
         kernel_size = to_ntuple(kernel_size, ndim)
-        self.weight = nn.Parameter(
-            torch.randn(out_channels, in_channels // groups, *kernel_size)
+        dilation = to_ntuple(dilation, ndim)
+        total_size = tuple(
+            ((ks - 1) * dil + 1)
+            for ks, dil in zip(kernel_size, dilation)
         )
+        weight = torch.zeros(out_channels, in_channels // groups, *total_size)
+        fill = torch.randn(out_channels, in_channels // groups, *kernel_size)
+        ids = tuple(
+            torch.arange(0, tot_sz, dil)
+            for tot_sz, dil in zip(total_size, dilation)
+        )
+        
+        # workaround bc PyTorch doesn't support [:, :, <tensor tuple>] indexing
+        weight[(slice(None), slice(None),) + torch.meshgrid(*ids)] = fill
+        
+        self.weight = nn.Parameter(weight)
         self.bias = nn.Parameter(torch.randn(out_channels)) if bias else None
 
     def forward(self, signal):

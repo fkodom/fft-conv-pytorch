@@ -27,6 +27,7 @@ def _gcd(x: int, y: int) -> int:
 @pytest.mark.parametrize("kernel_size", [1, 2, 3])
 @pytest.mark.parametrize("padding", [0, 1])
 @pytest.mark.parametrize("stride", [1, 2, 3])
+@pytest.mark.parametrize("dilation", [1, 2, 3])
 @pytest.mark.parametrize("bias", [True, False])
 @pytest.mark.parametrize("ndim", [1, 2, 3])
 @pytest.mark.parametrize("input_size", [7, 8])
@@ -36,6 +37,7 @@ def test_fft_conv(
     kernel_size: Union[int, Iterable[int]],
     padding: Union[int, Iterable[int]],
     stride: Union[int, Iterable[int]],
+    dilation: Union[int, Iterable[int]],
     groups: int,
     bias: bool,
     ndim: int,
@@ -49,6 +51,7 @@ def test_fft_conv(
         kernel_size=kernel_size,
         padding=padding,
         stride=stride,
+        dilation=dilation,
         groups=groups,
         bias=bias,
         ndim=ndim,
