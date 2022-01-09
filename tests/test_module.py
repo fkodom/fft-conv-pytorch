@@ -39,7 +39,7 @@ def test_fft_conv_module(
         kernel_size=kernel_size,
         padding=padding,
         stride=stride,
-        dilation=1,
+        dilation=dilation,
         groups=groups,
         bias=bias,
         ndim=ndim,
@@ -47,8 +47,11 @@ def test_fft_conv_module(
     batch_size = 2  # TODO: Make this non-constant?
     dims = ndim * [input_size]
     signal = torch.randn(batch_size, in_channels, *dims)
+
+    weight = fft_conv_layer.weight
+    bias = fft_conv_layer.bias
+
     kwargs = dict(
-        bias=fft_conv_layer.bias,
         padding=padding,
         stride=stride,
         dilation=dilation,
@@ -56,7 +59,7 @@ def test_fft_conv_module(
     )
 
     y0 = fft_conv_layer(signal)
-    y1 = torch_conv(signal, fft_conv_layer._weight, **kwargs)
+    y1 = torch_conv(signal, weight, bias=bias, **kwargs)
     
     _assert_almost_equal(y0, y1)
 

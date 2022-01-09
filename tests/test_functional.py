@@ -48,10 +48,20 @@ def test_fft_conv_functional(
     kernel_size = to_ntuple(kernel_size, n=signal.ndim - 2)
     w0 = torch.randn(out_channels, in_channels // groups, *kernel_size,
                      requires_grad=True)
-    w1 = w0.detach().clone().requires_grad()
+    w1 = w0.detach().clone().requires_grad_()
 
-    y0 = fft_conv(signal, w0, **kwargs)
-    y1 = torch_conv(signal, w1, **kwargs)
+    b0 = torch.randn(out_channels, requires_grad=True) if bias else None
+    b1 = b0.detach().clone().requires_grad_() if bias else None
+
+    kwargs = dict(
+        padding=padding,
+        stride=stride,
+        dilation=dilation,
+        groups=groups,
+    )
+
+    y0 = fft_conv(signal, w0, bias=b0, **kwargs)
+    y1 = torch_conv(signal, w1, bias=b1, **kwargs)
     
     _assert_almost_equal(y0, y1)
 
