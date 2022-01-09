@@ -57,6 +57,7 @@ def fft_conv(
     bias: Tensor = None,
     padding: Union[int, Iterable[int]] = 0,
     stride: Union[int, Iterable[int]] = 1,
+    dilation: Union[int, Iterable[int]] = 1,
     groups: int = 1,
 ) -> Tensor:
     """Performs N-d convolution of Tensors using a fast fourier transform, which
@@ -74,9 +75,23 @@ def fft_conv(
     Returns:
         (Tensor) Convolved tensor
     """
-    # Cast padding & stride to tuples.
-    padding_ = to_ntuple(padding, n=signal.ndim - 2)
-    stride_ = to_ntuple(stride, n=signal.ndim - 2)
+
+    # Cast padding, stride & dilation to tuples.
+    n = signal.ndim - 2
+    padding_ = to_ntuple(padding, n=n)
+    stride_ = to_ntuple(stride, n=n)
+    dilation_ = to_ntuple(dilation, n=n)
+
+    # internal dilation offsets
+    offset = torch.zeros(1, 1, *dilation_)
+    offset[(slice(None), slice(None), *((0,) * n))] = 1.
+
+    # correct the kernel by cutting off unwanted dilation trailing zeros
+    cutoff = tuple(
+        slice(None, -d + 1 if d != 1 else None) for d in dilation_) 
+
+    # pad the kernel internally according to the dilation parameters
+    kernel = torch.kron(kernel, offset)[(slice(None), slice(None)) + cutoff]
 
     # Pad the input signal & kernel tensors
     signal_padding = [p for p in padding_[::-1] for _ in range(2)]
@@ -167,21 +182,8 @@ class _FFTConv(nn.Module):
             )
 
         kernel_size = to_ntuple(kernel_size, ndim)
-        dilation = to_ntuple(dilation, ndim)
-        total_size = tuple(
-            ((ks - 1) * dil + 1)
-            for ks, dil in zip(kernel_size, dilation)
-        )
-        weight = torch.zeros(out_channels, in_channels // groups, *total_size)
-        fill = torch.randn(out_channels, in_channels // groups, *kernel_size)
-        ids = tuple(
-            torch.arange(0, tot_sz, dil)
-            for tot_sz, dil in zip(total_size, dilation)
-        )
-        
-        # workaround bc PyTorch doesn't support [:, :, <tensor tuple>] indexing
-        weight[(slice(None), slice(None),) + torch.meshgrid(*ids)] = fill
-        
+        weight = torch.randn(out_channels, in_channels // groups, *kernel_size)
+
         self.weight = nn.Parameter(weight)
         self.bias = nn.Parameter(torch.randn(out_channels)) if bias else None
 
@@ -192,6 +194,7 @@ class _FFTConv(nn.Module):
             bias=self.bias,
             padding=self.padding,
             stride=self.stride,
+            dilation=self.dilation,
             groups=self.groups,
         )
 
