@@ -84,11 +84,10 @@ def fft_conv(
 
     # internal dilation offsets
     offset = torch.zeros(1, 1, *dilation_)
-    offset[(slice(None), slice(None), *((0,) * n))] = 1.
+    offset[(slice(None), slice(None), *((0,) * n))] = 1.0
 
     # correct the kernel by cutting off unwanted dilation trailing zeros
-    cutoff = tuple(
-        slice(None, -d + 1 if d != 1 else None) for d in dilation_) 
+    cutoff = tuple(slice(None, -d + 1 if d != 1 else None) for d in dilation_)
 
     # pad the kernel internally according to the dilation parameters
     kernel = torch.kron(kernel, offset)[(slice(None), slice(None)) + cutoff]
