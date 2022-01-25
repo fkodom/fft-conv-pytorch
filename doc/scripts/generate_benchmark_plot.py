@@ -141,4 +141,5 @@ if __name__ == "__main__":
         _plot_benchmarks(direct, config=config, ax=ax[0, i], color="b", label="Direct")
 
     ax[0, 0].set_ylabel("Execution Time (ms)")
+    plt.legend(["FFT", "Direct"])
     plt.savefig(os.path.join(save_dir, "benchmark.png"))

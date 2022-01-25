@@ -54,10 +54,10 @@ Benchmarking FFT convolution against the direct convolution from PyTorch in 1D, 
 and 3D. The exact times are heavily dependent on your local machine, but relative 
 scaling with kernel size is always the same. 
 
-Num dimensions | Input Array Size
----------------|------------------
-1 | (4096)
-2 | (512, 512)
-3 | (64, 64, 64)
+Dimensions | Input Size   | Input Channels | Output Channels | Bias | Padding | Stride | Dilation
+-----------|--------------|----------------|-----------------|------|---------|--------|---------
+1          | (4096)       | 4              | 4               | True | 0       | 1      | 1
+2          | (512, 512)   | 4              | 4               | True | 0       | 1      | 1
+3          | (64, 64, 64) | 4              | 4               | True | 0       | 1      | 1
 
 ![Benchmark Plot](doc/benchmark.png)
