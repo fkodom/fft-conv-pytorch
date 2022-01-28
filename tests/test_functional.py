@@ -53,7 +53,12 @@ def test_fft_conv_functional(
     b0 = torch.randn(out_channels, requires_grad=True) if bias else None
     b1 = b0.detach().clone().requires_grad_() if bias else None
 
-    kwargs = dict(padding=padding, stride=stride, dilation=dilation, groups=groups,)
+    kwargs = dict(
+        padding=padding,
+        stride=stride,
+        dilation=dilation,
+        groups=groups,
+    )
 
     y0 = fft_conv(signal, w0, bias=b0, **kwargs)
     y1 = torch_conv(signal, w1, bias=b1, **kwargs)
@@ -99,7 +104,12 @@ def test_fft_conv_backward_functional(
     b0 = torch.randn(out_channels, requires_grad=True) if bias else None
     b1 = b0.detach().clone().requires_grad_() if bias else None
 
-    kwargs = dict(padding=padding, stride=stride, dilation=dilation, groups=groups,)
+    kwargs = dict(
+        padding=padding,
+        stride=stride,
+        dilation=dilation,
+        groups=groups,
+    )
 
     y0 = fft_conv(signal, w0, bias=b0, **kwargs)
     y1 = torch_conv(signal, w1, bias=b1, **kwargs)

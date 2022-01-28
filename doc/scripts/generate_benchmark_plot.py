@@ -24,7 +24,8 @@ class Benchmark(NamedTuple):
 
 def benchmark(fn: Callable, *args, num_iterations: int = 10, **kwargs) -> Benchmark:
     timer = Timer(
-        "fn(*args, **kwargs)", globals={"fn": fn, "args": args, "kwargs": kwargs},
+        "fn(*args, **kwargs)",
+        globals={"fn": fn, "args": args, "kwargs": kwargs},
     )
     times = timer.repeat(number=1, repeat=num_iterations + 1)
     return Benchmark(np.mean(times[1:]).item(), np.std(times[1:]).item())
