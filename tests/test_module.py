@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as f
 
 from fft_conv_pytorch.fft_conv import _FFTConv
-from tests.utils import _assert_almost_equal, _gcd
+from fft_conv_pytorch.utils import _assert_almost_equal, _gcd
 
 
 @pytest.mark.parametrize("in_channels", [2, 3])
