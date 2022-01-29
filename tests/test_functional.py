@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as f
 
 from fft_conv_pytorch.fft_conv import fft_conv, to_ntuple
-from tests.utils import _assert_almost_equal, _gcd
+from fft_conv_pytorch.utils import _assert_almost_equal, _gcd
 
 
 @pytest.mark.parametrize("in_channels", [2, 3])
@@ -53,7 +53,12 @@ def test_fft_conv_functional(
     b0 = torch.randn(out_channels, requires_grad=True) if bias else None
     b1 = b0.detach().clone().requires_grad_() if bias else None
 
-    kwargs = dict(padding=padding, stride=stride, dilation=dilation, groups=groups,)
+    kwargs = dict(
+        padding=padding,
+        stride=stride,
+        dilation=dilation,
+        groups=groups,
+    )
 
     y0 = fft_conv(signal, w0, bias=b0, **kwargs)
     y1 = torch_conv(signal, w1, bias=b1, **kwargs)
@@ -99,7 +104,12 @@ def test_fft_conv_backward_functional(
     b0 = torch.randn(out_channels, requires_grad=True) if bias else None
     b1 = b0.detach().clone().requires_grad_() if bias else None
 
-    kwargs = dict(padding=padding, stride=stride, dilation=dilation, groups=groups,)
+    kwargs = dict(
+        padding=padding,
+        stride=stride,
+        dilation=dilation,
+        groups=groups,
+    )
 
     y0 = fft_conv(signal, w0, bias=b0, **kwargs)
     y1 = torch_conv(signal, w1, bias=b1, **kwargs)

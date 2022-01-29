@@ -1,6 +1,5 @@
 from functools import lru_cache, partial
-from timeit import Timer
-from typing import Callable, Dict, Iterable, List, NamedTuple, Optional, Sequence, Union
+from typing import Dict, Iterable, List, Optional, Sequence, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,25 +8,7 @@ import torch.nn.functional as f
 from tqdm import tqdm
 
 from fft_conv_pytorch.fft_conv import fft_conv, to_ntuple
-
-
-class Benchmark(NamedTuple):
-    mean: float
-    std: float
-
-    def __repr__(self):
-        return f"BenchmarkResult(mean: {self.mean:.3e}, std: {self.std:.3e})"
-
-    def __str__(self):
-        return f"({self.mean:.3e} \u00B1 {self.std:.3e}) s"
-
-
-def benchmark(fn: Callable, *args, num_iterations: int = 10, **kwargs) -> Benchmark:
-    timer = Timer(
-        "fn(*args, **kwargs)", globals={"fn": fn, "args": args, "kwargs": kwargs},
-    )
-    times = timer.repeat(number=1, repeat=num_iterations + 1)
-    return Benchmark(np.mean(times[1:]).item(), np.std(times[1:]).item())
+from fft_conv_pytorch.utils import Benchmark, benchmark
 
 
 @lru_cache(maxsize=1)
