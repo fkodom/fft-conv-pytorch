@@ -83,7 +83,7 @@ def fft_conv(
     dilation_ = to_ntuple(dilation, n=n)
 
     # internal dilation offsets
-    offset = torch.zeros(1, 1, *dilation_)
+    offset = torch.zeros(1, 1, *dilation_).to(signal.device)
     offset[(slice(None), slice(None), *((0,) * n))] = 1.0
 
     # correct the kernel by cutting off unwanted dilation trailing zeros
