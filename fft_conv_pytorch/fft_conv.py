@@ -56,6 +56,7 @@ def fft_conv(
     kernel: Tensor,
     bias: Tensor = None,
     padding: Union[int, Iterable[int]] = 0,
+    padding_mode: str = 'zeros',
     stride: Union[int, Iterable[int]] = 1,
     dilation: Union[int, Iterable[int]] = 1,
     groups: int = 1,
@@ -94,7 +95,7 @@ def fft_conv(
 
     # Pad the input signal & kernel tensors
     signal_padding = [p for p in padding_[::-1] for _ in range(2)]
-    signal = f.pad(signal, signal_padding)
+    signal = f.pad(signal, signal_padding, mode=padding_mode)
 
     # Because PyTorch computes a *one-sided* FFT, we need the final dimension to
     # have *even* length.  Just pad with one more zero if the final dimension is odd.
@@ -143,6 +144,7 @@ class _FFTConv(nn.Module):
         out_channels: int,
         kernel_size: Union[int, Iterable[int]],
         padding: Union[int, Iterable[int]] = 0,
+        padding_mode: str = 'zeros',
         stride: Union[int, Iterable[int]] = 1,
         dilation: Union[int, Iterable[int]] = 1,
         groups: int = 1,
@@ -164,6 +166,7 @@ class _FFTConv(nn.Module):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.padding = padding
+        self.padding_mode = padding_mode
         self.stride = stride
         self.dilation = dilation
         self.groups = groups
@@ -192,6 +195,7 @@ class _FFTConv(nn.Module):
             self.weight,
             bias=self.bias,
             padding=self.padding,
+            padding_mode=self.padding_mode,
             stride=self.stride,
             dilation=self.dilation,
             groups=self.groups,
