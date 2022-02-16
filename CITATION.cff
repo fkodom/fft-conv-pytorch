@@ -1,0 +1,15 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: FFT Conv PyTorch
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - name-particle: Frank
+    family-names: Odom
+    name-suffix: III
+    email: frank.odom.iii@gmail.com
+    affiliation: Plainsight
