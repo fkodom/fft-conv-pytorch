@@ -8,7 +8,8 @@ message: >-
   metadata from this file.
 type: software
 authors:
-  - name-particle: Frank
+  - given-names: Frank Odom
+    name-particle: Frank
     family-names: Odom
     name-suffix: III
     email: frank.odom.iii@gmail.com
