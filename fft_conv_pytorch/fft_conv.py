@@ -99,15 +99,14 @@ def fft_conv(
 
     # Because PyTorch computes a *one-sided* FFT, we need the final dimension to
     # have *even* length.  Just pad with one more zero if the final dimension is odd.
+    signal_size = signal.size()  # original signal size without padding to even
     if signal.size(-1) % 2 != 0:
-        signal_ = f.pad(signal, [0, 1])
-    else:
-        signal_ = signal
+        signal = f.pad(signal, [0, 1])
 
     kernel_padding = [
         pad
-        for i in reversed(range(2, signal_.ndim))
-        for pad in [0, signal_.size(i) - kernel.size(i)]
+        for i in reversed(range(2, signal.ndim))
+        for pad in [0, signal.size(i) - kernel.size(i)]
     ]
     padded_kernel = f.pad(kernel, kernel_padding)
 
@@ -121,8 +120,8 @@ def fft_conv(
     output = irfftn(output_fr, dim=tuple(range(2, signal.ndim)))
 
     # Remove extra padded values
-    crop_slices = [slice(0, output.size(0)), slice(0, output.size(1))] + [
-        slice(0, (signal.size(i) - kernel.size(i) + 1), stride_[i - 2])
+    crop_slices = [slice(None), slice(None)] + [
+        slice(0, (signal_size[i] - kernel.size(i) + 1), stride_[i - 2])
         for i in range(2, signal.ndim)
     ]
     output = output[crop_slices].contiguous()
