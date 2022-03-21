@@ -12,7 +12,7 @@ from fft_conv_pytorch.utils import _assert_almost_equal, _gcd
 @pytest.mark.parametrize("out_channels", [2, 3])
 @pytest.mark.parametrize("groups", [1, 2, 3])
 @pytest.mark.parametrize("kernel_size", [2, 3])
-@pytest.mark.parametrize("padding", [0, 1])
+@pytest.mark.parametrize("padding", [0, 1, "same"])
 @pytest.mark.parametrize("stride", [1, 2])
 @pytest.mark.parametrize("dilation", [1, 2])
 @pytest.mark.parametrize("bias", [True])
@@ -30,6 +30,10 @@ def test_fft_conv_functional(
     ndim: int,
     input_size: int,
 ):
+    if padding == "same" and (stride != 1 or dilation != 1):
+        # padding='same' is not compatible with strided convolutions
+        return
+
     torch_conv = getattr(f, f"conv{ndim}d")
     groups = _gcd(in_channels, _gcd(out_channels, groups))
 
@@ -70,7 +74,7 @@ def test_fft_conv_functional(
 @pytest.mark.parametrize("out_channels", [2, 3])
 @pytest.mark.parametrize("groups", [1, 2, 3])
 @pytest.mark.parametrize("kernel_size", [2, 3])
-@pytest.mark.parametrize("padding", [0, 1])
+@pytest.mark.parametrize("padding", [0, 1, "same"])
 @pytest.mark.parametrize("stride", [1, 2])
 @pytest.mark.parametrize("dilation", [1, 2])
 @pytest.mark.parametrize("bias", [True])
@@ -88,6 +92,10 @@ def test_fft_conv_backward_functional(
     ndim: int,
     input_size: int,
 ):
+    if padding == "same" and (stride != 1 or dilation != 1):
+        # padding='same' is not compatible with strided convolutions
+        return
+
     torch_conv = getattr(f, f"conv{ndim}d")
     groups = _gcd(in_channels, _gcd(out_channels, groups))
 
