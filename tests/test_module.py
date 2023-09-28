@@ -30,6 +30,10 @@ def test_fft_conv_module(
     ndim: int,
     input_size: int,
 ):
+    if padding == "same" and (stride != 1 or dilation != 1):
+        # padding='same' is not compatible with strided convolutions
+        return
+
     torch_conv = getattr(f, f"conv{ndim}d")
     groups = _gcd(in_channels, _gcd(out_channels, groups))
     fft_conv_layer = _FFTConv(
@@ -85,6 +89,10 @@ def test_fft_conv_backward_module(
     ndim: int,
     input_size: int,
 ):
+    if padding == "same" and (stride != 1 or dilation != 1):
+        # padding='same' is not compatible with strided convolutions
+        return
+
     torch_conv = getattr(f, f"conv{ndim}d")
     groups = _gcd(in_channels, _gcd(out_channels, groups))
     fft_conv_layer = _FFTConv(
