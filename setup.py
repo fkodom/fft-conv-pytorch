@@ -24,6 +24,7 @@ setup(
     description="Implementation of 1D, 2D, and 3D FFT convolutions in PyTorch.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
+    license="MIT",
     install_requires=["numpy", "torch>=1.8"],
     extras_require={"test": ["black", "flake8", "isort", "pytest", "pytest-cov"]},
     classifiers=[
