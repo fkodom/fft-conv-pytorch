@@ -7,6 +7,7 @@ Implementation of 1D, 2D, and 3D FFT convolutions in PyTorch.
     * Dependent on machine and PyTorch version.
     * Also see benchmarks below.
 
+For a step-by-step explanation, see my article: [Fourier Convolutions in PyTorch](https://fkodom.com/blog/fourier-convolutions-pytorch).
 
 ## Install
 
